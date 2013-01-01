@@ -721,6 +721,7 @@ void read_file(char file[]){
 ////
 ////						****************Main*****************
 
+// To load the register numbers from the registers.txt file
 map <string, int> registers;
 
 void load_registers(){
@@ -735,7 +736,7 @@ void load_registers(){
 	}
 }
 
-//New function, with new paramter for number of trailling zeroes.
+//New function, with new paramter for number of digits the hexadecimal number will occupy.
 string int_to_hexa(int n, int digit){
 	string res= "";
 	while(n>0){
@@ -753,6 +754,7 @@ string int_to_hexa(int n, int digit){
 	return res;
 }
 
+
 int bin_to_int(string bin){
 	int ret= 0;
 	reverse(bin.begin(), bin.end());
@@ -763,12 +765,13 @@ int bin_to_int(string bin){
 	return ret;
 }
 
-struct op_code{
+// Struct that holds a statement and its object code.
+struct ob_code{
 	statement s;
-	string opcode;
+	string obcode;
 };
 
-vector <op_code> op_codes;
+vector <ob_code> ob_codes;
 
 char bin_to_hexa(string bin){
 	if(bin == "0000")
@@ -806,6 +809,7 @@ char bin_to_hexa(string bin){
 	return 'H';
 }
 
+// Converts negative numbers to their hexadecimal equivalent.
 string neg_int_to_hexa(int n, int digit){
 	string ret= "";
 	for(int i= 0; i< digit; i++){
@@ -821,48 +825,57 @@ string neg_int_to_hexa(int n, int digit){
 	return ret;
 }
 
-void generate_op_code(){
-	
+void generate_ob_code(){
 	
 	for(int i= 0; i< (int)statements.size(); i++){
-		if(statements[i].is_comment)
-			continue;
-		op_code temp;
+		
+		ob_code temp;
+		temp.obcode= "";
 		temp.s= statements[i];
+		if(statements[i].is_comment){
+			ob_codes.push_back(temp);
+			continue;
+		}
+		
 		op_line curr_mnemonic= op_table.get(temp.s.mnemonic);
 		vector<string> operands= statements[i].operand;
-		if(curr_mnemonic.directive_flag || statements[i].is_comment){
-			if(curr_mnemonic.mnemonic == "WORD"){
+		
+		
+		if(curr_mnemonic.directive_flag){
+			if(curr_mnemonic.mnemonic == "WORD"){		// If WORD directive takes the operand and changes it in to decimal
+														// and then into hexadecimal and puts it in the obcode.
 				int operand = atoi(operands[0].c_str());
-				temp.opcode= int_to_hexa(operand,6);
+				temp.obcode= int_to_hexa(operand,6);
 			}
-			else if(curr_mnemonic.mnemonic == "BYTE"){
-				temp.opcode= "";
+			else if(curr_mnemonic.mnemonic == "BYTE"){ // Deals with BYTE directive.
+				temp.obcode= "";
 				for(int j= 2; j< (int)operands[0].size()-1; j++){
-					if(operands[0][0] =='x')
-						temp.opcode+= toupper(operands[0][j]);
-					else if(operands[0][0] =='c'){
-						cout << (int)operands[0][j] << " " << operands[0][j] << endl;
-						temp.opcode+= int_to_hexa((int)operands[0][j],2);
-					}
+					if(operands[0][0] =='x')			// If hexadecimal x, takes the operand and changes it to upper
+														// case and puts it in the obcode.
+						temp.obcode+= toupper(operands[0][j]);
+					else if(operands[0][0] =='c')		// If character c, takes the operand characters as they are
+														// and change them to their hexadecimal value.
+						temp.obcode+= int_to_hexa((int)operands[0][j],2);
+					
 				}
 			}
-			//if(curr_mnemonic.mnemonic=="resb" || curr_mnemonic.mnemonic=="resw")
 		}
 		else{
-			temp.opcode= "";
-			if(curr_mnemonic.format == 2){
-				temp.opcode+= curr_mnemonic.opcode;
-				temp.opcode+= int_to_hexa(registers[operands[0]], 1);
+			temp.obcode= "";
+			if(curr_mnemonic.format == 2){				// If format 2 gets the opcode and the number of the register
+														// and puts them in the obcode.
+				temp.obcode+= curr_mnemonic.opcode;
+				temp.obcode+= int_to_hexa(registers[operands[0]], 1);
 				if(curr_mnemonic.mnemonic=="CLEAR" || curr_mnemonic.mnemonic=="TIXR")
-					temp.opcode+= '0';
+					temp.obcode+= '0';					// Special case the CLEAR and TIXR operations takes only 1 register.
 				else
-					temp.opcode+= int_to_hexa(registers[operands[1]], 1);
+					temp.obcode+= int_to_hexa(registers[operands[1]], 1);
 			}
 			else{
 				bool imed_digit= false;
-				temp.opcode+= curr_mnemonic.opcode;
-				string ni,xbpe;
+				temp.obcode+= curr_mnemonic.opcode;		// First adds the opcode to the obcode.
+				
+				string ni,xbpe;							// Sets the flags into a string.
 				ni= statements[i].n+'0';
 				ni+= statements[i].i+'0';
 				
@@ -871,54 +884,63 @@ void generate_op_code(){
 				xbpe+= statements[i].p+'0';
 				xbpe+= statements[i].e+'0';
 				
-				if(ni == "11"){
+				if(ni == "11"){						// Checks if the ni flags are 11, then it sets the p flag to be the
+														// opposite the the e flag, so it becomes pc relative if not format 4.
 					xbpe[2]= !statements[i].e+'0';
 				}
-				else if(ni != "00"){
+				else if(ni != "00"){					// Checks if the operand is a number, then it makes the flag p and e
+														// flags to be opposite.
+														// Else it turns on the imed_digit flag, which means that the operand
+														// to deal with is going to be a number and not a symbol.
 					if(isalpha(operands[0][0]))
 						xbpe[2]= !statements[i].e+'0';
 					else
 						imed_digit= true;
 				}
 				
-				string sec= "";
-				sec+= temp.opcode[1];
-				int second_digit= hexa_to_int(sec);
+				string helper= "";						// Add helper, as the code wasn't working properly when doing it directly.
+				helper+= temp.obcode[1];
+				int second_digit= hexa_to_int(helper);	// Get the integer value of the second digit of the opcode.
+				second_digit+= bin_to_int(ni);			// Add to it the ni integer value.
+				helper= int_to_hexa(second_digit, 1);	// Change the final value into hexadecimal.
+				temp.obcode[1]= helper[0];				// Put the final value in the second place in the obcode.
 				
-				second_digit+= bin_to_int(ni);
-				sec= int_to_hexa(second_digit, 1);
-				temp.opcode[1]= sec[0];
-				
-				int third_digit= bin_to_int(xbpe);
-				temp.opcode+= int_to_hexa(third_digit, 1);
+				int third_digit= bin_to_int(xbpe);		// Converts xbpe flags to integer then to hexa,
+				temp.obcode+= int_to_hexa(third_digit, 1); // then add the result to the obcode.
 				
 				int disp= 0;
 				
-				if(statements[i].e){
+				if(statements[i].e){					// If format 4.
 					if(curr_mnemonic.no_args > 0){
-						disp= SYMTAB[operands[0]];
-						if(imed_digit)
+						if(imed_digit)					// If operand is number then we take it as it is, and put it in the
+														// disp variable
 							disp= atoi(operands[0].c_str());
+						else
+														// Else put the address of the operand.
+							disp= SYMTAB[operands[0]];	
 					}
-					temp.opcode+= int_to_hexa(disp, 5);
+					temp.obcode+= int_to_hexa(disp, 5);// To hexa occupying 5 places.
 				}
 				else{
-					if(curr_mnemonic.no_args > 0){
-						disp= SYMTAB[operands[0]]-statements[i+1].address;
-						if(imed_digit)
+					if(curr_mnemonic.no_args > 0){		// Format 3.
+						if(imed_digit)					// Similar to format 4.
 							disp= atoi(operands[0].c_str());
+						else
+														// Gets the difference between the PC counter and the symbol address.
+							disp= SYMTAB[operands[0]]-statements[i+1].address;
 					}
 					if(disp<0)
-						temp.opcode+= neg_int_to_hexa(disp, 3);
+						temp.obcode+= neg_int_to_hexa(disp, 3);
 					else
-						temp.opcode+= int_to_hexa(disp, 3);
+						temp.obcode+= int_to_hexa(disp, 3);
 				}
 				
-				if(curr_mnemonic.mnemonic == "RSUB")
-					temp.opcode= "4F0000";
+				if(curr_mnemonic.mnemonic == "RSUB") // Special instruction to be handled the RSUB as it has all of the
+														// to be turned off.
+					temp.obcode= "4F0000";
 			}
 		}
-		op_codes.push_back(temp);
+		ob_codes.push_back(temp);
 	}
 }
 
@@ -939,9 +961,9 @@ int main() {
 		validate();
 		assignAddress(op_table);
 		output();
-		generate_op_code();
-		for(int i= 0; i< (int)op_codes.size(); i++)
-			cout << op_codes[i].opcode << " " << op_codes[i].s.mnemonic << endl;
+		generate_ob_code();
+		for(int i= 0; i< (int)ob_codes.size(); i++)
+			cout << ob_codes[i].s.address << "\t" << ob_codes[i].s.line << "\t\t" << ob_codes[i].obcode << endl;
 	}
 }
 
