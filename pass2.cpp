@@ -114,8 +114,10 @@ string errors[] = {"Illegal Format.", 				//0
 				   "Illegal operand(s).",       	//5
 				   "Illegal Addressing Mode.",  	//6
 				   "odd length for hex string.",		//7
-				   "duplicate label definition."};	//8
-
+				   "duplicate label definition.", 		//8
+				   "Out of Range",						//9
+				   "Operand doesn't exist"};				//10
+				
 
 bool caseIn_str_comp(string s1 , string s2)
 {
@@ -245,12 +247,6 @@ void assignAddress(OP_TABLE table){
         if(SYMTAB.count(statements[i].label)==1 && SYMTAB[statements[i].label]==0){
 			SYMTAB[statements[i].label]= curr;
 		}
-        /*if(SYMTAB.count(make_pair((string)statements[i].label, 0)) == 1){
-            set<pair<string, int> > :: iterator it;
-            it= SYMTAB.find(make_pair((string)statements[i].label, 0));
-            SYMTAB.erase(it);
-            SYMTAB.insert(make_pair((string)statements[i].label, curr));
-        }*/
         //////
         if(line.directive_flag==false){
             if(line.format==5 && statements[i].e==true)
@@ -667,6 +663,7 @@ bool parse_operand(){
     return true;
 }
 void read_file(char file[]){
+
     string line;
     char ext[] = ".txt";
     ifstream myfile (strcat(file, ext));
@@ -724,8 +721,211 @@ void read_file(char file[]){
 ////
 ////						****************Main*****************
 
+map <string, int> registers;
+
+void load_registers(){
+	ifstream file_r;
+	file_r.open("registers.txt");
+	string r;
+	if(file_r.is_open()){
+		while(file_r >> r){
+			int num; file_r >> num;
+			registers[r]= num;
+		}
+	}
+}
+
+//New function, with new paramter for number of trailling zeroes.
+string int_to_hexa(int n, int digit){
+	string res= "";
+	while(n>0){
+		int curr= n%16;
+		if(curr<10)
+			res+= curr+'0';
+		else
+			res+= curr+'A'-10;
+		n/= 16;
+	}
+	
+	while((int)res.size() < digit)
+		res+= '0';
+	reverse(res.begin(), res.end());
+	return res;
+}
+
+int bin_to_int(string bin){
+	int ret= 0;
+	reverse(bin.begin(), bin.end());
+	for(int i= 0; i< (int)bin.size(); i++){
+		ret+= (bin[i]-'0') * pow(2, i);
+	}
+	
+	return ret;
+}
+
+struct op_code{
+	statement s;
+	string opcode;
+};
+
+vector <op_code> op_codes;
+
+char bin_to_hexa(string bin){
+	if(bin == "0000")
+		return '0';
+	else if(bin == "0001")
+		return '1';
+	else if(bin == "0010")
+		return '2';
+	else if(bin == "0011")
+		return '3';
+	else if(bin == "0100")
+		return '4';
+	else if(bin == "0101")
+		return '5';
+	else if(bin == "0110")
+		return '6';
+	else if(bin == "0111")
+		return '7';
+	else if(bin == "1000")
+		return '8';
+	else if(bin == "1001")
+		return '9';
+	else if(bin == "1010")
+		return 'A';
+	else if(bin == "1011")
+		return 'B';
+	else if(bin == "1100")
+		return 'C';
+	else if(bin == "1101")
+		return 'D';
+	else if(bin == "1110")
+		return 'E';
+	else if(bin == "1111")
+		return 'F';
+	return 'H';
+}
+
+string neg_int_to_hexa(int n, int digit){
+	string ret= "";
+	for(int i= 0; i< digit; i++){
+		string curr= "";
+		for(int j= 4*i; j< 4*i+4; j++){ 
+			curr += ((n&(1<<j))!=0) + '0';
+		}
+		reverse(curr.begin(), curr.end());
+		ret+= bin_to_hexa(curr);
+	}
+	reverse(ret.begin(), ret.end());
+	
+	return ret;
+}
+
+void generate_op_code(){
+	
+	
+	for(int i= 0; i< (int)statements.size(); i++){
+		if(statements[i].is_comment)
+			continue;
+		op_code temp;
+		temp.s= statements[i];
+		op_line curr_mnemonic= op_table.get(temp.s.mnemonic);
+		vector<string> operands= statements[i].operand;
+		if(curr_mnemonic.directive_flag || statements[i].is_comment){
+			if(curr_mnemonic.mnemonic == "WORD"){
+				int operand = atoi(operands[0].c_str());
+				temp.opcode= int_to_hexa(operand,6);
+			}
+			else if(curr_mnemonic.mnemonic == "BYTE"){
+				temp.opcode= "";
+				for(int j= 2; j< (int)operands[0].size()-1; j++){
+					if(operands[0][0] =='x')
+						temp.opcode+= toupper(operands[0][j]);
+					else if(operands[0][0] =='c'){
+						cout << (int)operands[0][j] << " " << operands[0][j] << endl;
+						temp.opcode+= int_to_hexa((int)operands[0][j],2);
+					}
+				}
+			}
+			//if(curr_mnemonic.mnemonic=="resb" || curr_mnemonic.mnemonic=="resw")
+		}
+		else{
+			temp.opcode= "";
+			if(curr_mnemonic.format == 2){
+				temp.opcode+= curr_mnemonic.opcode;
+				temp.opcode+= int_to_hexa(registers[operands[0]], 1);
+				if(curr_mnemonic.mnemonic=="CLEAR" || curr_mnemonic.mnemonic=="TIXR")
+					temp.opcode+= '0';
+				else
+					temp.opcode+= int_to_hexa(registers[operands[1]], 1);
+			}
+			else{
+				bool imed_digit= false;
+				temp.opcode+= curr_mnemonic.opcode;
+				string ni,xbpe;
+				ni= statements[i].n+'0';
+				ni+= statements[i].i+'0';
+				
+				xbpe= statements[i].x+'0';
+				xbpe+= statements[i].b+'0';
+				xbpe+= statements[i].p+'0';
+				xbpe+= statements[i].e+'0';
+				
+				if(ni == "11"){
+					xbpe[2]= !statements[i].e+'0';
+				}
+				else if(ni != "00"){
+					if(isalpha(operands[0][0]))
+						xbpe[2]= !statements[i].e+'0';
+					else
+						imed_digit= true;
+				}
+				
+				string sec= "";
+				sec+= temp.opcode[1];
+				int second_digit= hexa_to_int(sec);
+				
+				second_digit+= bin_to_int(ni);
+				sec= int_to_hexa(second_digit, 1);
+				temp.opcode[1]= sec[0];
+				
+				int third_digit= bin_to_int(xbpe);
+				temp.opcode+= int_to_hexa(third_digit, 1);
+				
+				int disp= 0;
+				
+				if(statements[i].e){
+					if(curr_mnemonic.no_args > 0){
+						disp= SYMTAB[operands[0]];
+						if(imed_digit)
+							disp= atoi(operands[0].c_str());
+					}
+					temp.opcode+= int_to_hexa(disp, 5);
+				}
+				else{
+					if(curr_mnemonic.no_args > 0){
+						disp= SYMTAB[operands[0]]-statements[i+1].address;
+						if(imed_digit)
+							disp= atoi(operands[0].c_str());
+					}
+					if(disp<0)
+						temp.opcode+= neg_int_to_hexa(disp, 3);
+					else
+						temp.opcode+= int_to_hexa(disp, 3);
+				}
+				
+				if(curr_mnemonic.mnemonic == "RSUB")
+					temp.opcode= "4F0000";
+			}
+		}
+		op_codes.push_back(temp);
+	}
+}
+
+
 int main() {
 	op_table.create();
+	load_registers();
 	while(true){
 		string file;
 		cin >> file;
@@ -739,7 +939,9 @@ int main() {
 		validate();
 		assignAddress(op_table);
 		output();
-
+		generate_op_code();
+		for(int i= 0; i< (int)op_codes.size(); i++)
+			cout << op_codes[i].opcode << " " << op_codes[i].s.mnemonic << endl;
 	}
 }
 

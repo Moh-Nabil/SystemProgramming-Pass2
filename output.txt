@@ -1,24 +1,70 @@
-1                    .  copy string s1 to s2
-2                    .   Loop  where index = 1
-3       000000       prog     start   0000
-                     ****Illegal operand(s).
-4       000000       bgn      ldt     #11   
-                     ****Illegal Format.
-5       000000                ldx     #0
-                     ****Illegal operand(s).
-6       000000       loop     ldch    s1,x
-                     ****Illegal operand(s).
-7       000000                stch    s2,x
-                     ****Illegal operand(s).
-8       000000                tixr    t
-                     ****Illegal operand(s).
-9       000000                jlt     loop
-                     ****Illegal operand(s).
-10      000000                j       *
-                     ****Illegal operand(s).
-11      000000       s1       byte    c'test string'  
-                     ****Illegal Format.
-12      000000       s2       resb    11
-                     ****Illegal operand(s).
-13      000000                end     bgn
-                     ****Illegal operand(s).
+1                    .23456789012345678901234567890123456
+2       000000       COPY     start   0
+3       000000       FIRST    STL     RETADR
+4       000003                LDB     #LENGTH
+5       000006                BASE    LENGTH
+6       000006       CLOOP   +JSUB    RDREC
+7       00000A                LDA     LENGTH
+8       00000D                COMP    #0
+9       000010                JEQ     ENDFIL
+10      000013               +JSUB    WRREC
+11      000017                J       CLOOP
+12      00001A       ENDFIL   LDA     EOF
+13      00001D                STA     BUFFER
+14      000020                LDA     #3
+15      000023                STA     LENGTH
+16      000026               +JSUB    WRREC
+17      00002A                J       @RETADR
+18      00002D       EOF      BYTE    C'EOF'
+19      000030       RETADR   RESW    1
+20      000033       LENGTH   RESW    1
+21      000036       BUFFER   RESB    4096
+22                   .
+23                   .
+24      001036       RDREC    CLEAR   X
+25      001038                CLEAR   A
+26      00103A                CLEAR   S
+27      00103C               +LDT     #4096
+28      001040       RLOOP    TD      INPUT
+29      001043                JEQ     RLOOP
+30      001046                TD      INPUT
+31      001049                COMPR   A,S
+32      00104B                JEQ     EXIT
+33      00104E                STCH    BUFFER,X
+34      001051                TIXR    T
+35      001053                JLT     RLOOP
+36      001056       EXIT     STX     LENGTH
+37      001059                RSUB
+38      00105C       INPUT    BYTE    X'F1'
+39                   .
+40                   .
+41      00105D       WRREC    CLEAR   X
+42      00105F                LDT     LENGTH
+43      001062       WLOOP    TD      OUTPUT
+44      001065                JEQ     WLOOP
+45      001068                LDCH    BUFFER,X
+46      00106B                WD      OUTPUT
+47      00106E                TIXR    T
+48      001070                JLT     WLOOP
+49      001073                RSUB
+50      001076       OUTPUT   BYTE    X'05'
+51      001077                END
+
+
+**********************SYMBOL TABLE**************************
+
+			Symbol		Address
+			buffer		000036
+			cloop		000006
+			endfil		00001A
+			eof		00002D
+			exit		001056
+			first		000000
+			input		00105C
+			length		000033
+			output		001076
+			rdrec		001036
+			retadr		000030
+			rloop		001040
+			wloop		001062
+			wrrec		00105D
