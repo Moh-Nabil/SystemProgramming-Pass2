@@ -1,0 +1,24 @@
+1                    .  copy string s1 to s2
+2                    .   Loop  where index = 1
+3       000000       prog     start   0000
+                     ****Illegal operand(s).
+4       000000       bgn      ldt     #11   
+                     ****Illegal Format.
+5       000000                ldx     #0
+                     ****Illegal operand(s).
+6       000000       loop     ldch    s1,x
+                     ****Illegal operand(s).
+7       000000                stch    s2,x
+                     ****Illegal operand(s).
+8       000000                tixr    t
+                     ****Illegal operand(s).
+9       000000                jlt     loop
+                     ****Illegal operand(s).
+10      000000                j       *
+                     ****Illegal operand(s).
+11      000000       s1       byte    c'test string'  
+                     ****Illegal Format.
+12      000000       s2       resb    11
+                     ****Illegal operand(s).
+13      000000                end     bgn
+                     ****Illegal operand(s).
