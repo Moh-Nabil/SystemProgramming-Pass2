@@ -15,7 +15,7 @@ using namespace std;
 
 ////						**************TABLES****************
 //*****************SYMTABLE
-set<pair<string, int> > SYMTAB;
+map<string, int> SYMTAB;
 //*****************OPTABLE
 struct op_line{
 	string mnemonic, opcode;
@@ -171,11 +171,10 @@ bool is_valid_label(statement &s) {
 	return true;
 }
 void insert_SYMTAB(statement &s){
-	pair<string, int> temp= make_pair(s.label, 0);
-	if(SYMTAB.count(temp))
+	if(SYMTAB.count(s.label))
 		 s.error = 8;
 	else
-		SYMTAB.insert(temp);
+		SYMTAB[s.label]= 0;;
 }
 struct OP_TABLE op_table;
 ////						****************addressing and printing*****************
@@ -243,12 +242,15 @@ void assignAddress(OP_TABLE table){
         line = table.get(statements[i].mnemonic);
         statements[i].address=curr;
         /////
-        if(SYMTAB.count(make_pair((string)statements[i].label, 0)) == 1){
+        if(SYMTAB.count(statements[i].label)==1 && SYMTAB[statements[i].label]==0){
+			SYMTAB[statements[i].label]= curr;
+		}
+        /*if(SYMTAB.count(make_pair((string)statements[i].label, 0)) == 1){
             set<pair<string, int> > :: iterator it;
             it= SYMTAB.find(make_pair((string)statements[i].label, 0));
             SYMTAB.erase(it);
             SYMTAB.insert(make_pair((string)statements[i].label, curr));
-        }
+        }*/
         //////
         if(line.directive_flag==false){
             if(line.format==5 && statements[i].e==true)
@@ -305,9 +307,11 @@ void output(){
     file<<"\n\n"<<"**********************SYMBOL TABLE**************************"<<endl<<endl;
     file <<"\t\t\t" <<"Symbol" << "\t\t" << "Address"<< endl;
 
-    set <pair<string, int> > :: iterator it;
+    map <string, int> :: iterator it;
 		for(it= SYMTAB.begin(); it!= SYMTAB.end(); it++){
-			pair<string, int> temp= *it;
+			pair<string, int> temp;
+			temp.first= it->first;
+			temp.second= it->second;
 			file <<"\t\t\t" <<temp.first << "\t\t" << int_to_hexa(temp.second )<< endl;
     }
     file.close();
