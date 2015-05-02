@@ -122,7 +122,7 @@ bool caseIn_str_comp(string s1 , string s2)
     if(s1.size() != s2.size())
         return false ;
 
-    for(int i = 0 ; i<s1.size() ; i++)
+    for(int i = 0 ; i<(int)s1.size() ; i++)
     {
         if(tolower(s1[i])!=tolower(s2[i]))
             return false ;
@@ -135,7 +135,7 @@ bool isNum(string s)
 {
     char const* temp = s.c_str() ;
 
-    for(int i = 0 ; i <s.size() ; i++)
+    for(int i = 0 ; i <(int)s.size() ; i++)
     {
         if(!isdigit(temp[i]))
             return false;
@@ -158,7 +158,7 @@ int find_statement(string s) {
 bool is_valid_symbol(string s){
 	if (!isalpha(s[0]) && s[0] != '$')
 		return false;
-	for (int i = 1; i < s.size(); i++)
+	for (int i = 1; i < (int)s.size(); i++)
 		if (!isalnum(s[i]) && s[i] != '$')
 			return false;
 	return true;
@@ -182,7 +182,7 @@ struct OP_TABLE op_table;
 //from hexa to integer and vice versa
 int hexa_to_int (string s){
     int res = 0;
-    for(int i=0;i<s.size();i++){
+    for(int i=0;i<(int)s.size();i++){
         int now;
         if(s[i]=='A' || s[i]=='a')
             now = 10;
@@ -233,7 +233,7 @@ void assignAddress(OP_TABLE table){
     }
     int curr = start;
     op_line line ;
-    for(int i=ind+1;i<statements.size();i++){
+    for(int i=ind+1;i<(int)statements.size();i++){
         if(statements[i].is_comment)
             continue;
         else if(statements[i].error!=-1){
@@ -288,7 +288,7 @@ void assignAddress(OP_TABLE table){
 void output(){
     ofstream file ;
     file.open("output.txt");
-    for(int i=0;i<statements.size();i++){
+    for(int i=0;i<(int)statements.size();i++){
         int digits = log10(i+1)+1;
         file<<i+1;
         for(int j=0;j<8-digits;j++)
@@ -338,7 +338,7 @@ void validate_start_operand(statement &s) {
 		s.error = 5;
 		return;
 	}
-	for(int i=0; i<s.operand[0].size(); i++)
+	for(int i=0; i<(int)s.operand[0].size(); i++)
 		if(!isxdigit((char)s.operand[0][i])){
 			s.error = 5;
 			return;
@@ -387,7 +387,7 @@ void validate_end() {
 ////						******************VBody*****************
 
 bool is_dec_num(string s){
-	for(int i=0; i<s.size(); i++)
+	for(int i=0; i<(int)s.size(); i++)
 		if(!isdigit(s[i]))
 			return false;
 	return true;
@@ -418,7 +418,7 @@ void validate_operand_catF(statement &s){
 void validate_operand_catH(statement &s){
 	if(s.n && s.i && !s.x && !s.b && !s.p && !s.e){
 		bool valid = true;
-		for(int i=0; i<s.operand.size(); i++)
+		for(int i=0; i<(int)s.operand.size(); i++)
 			if(is_dec_num(s.operand[0])==false || s.operand[0].size()>4){
 				valid = false;
 				break;
@@ -465,7 +465,7 @@ void validate_catG(statement &s)
      }
      else if(tolower(str[0])=='c')
      {
-         for(int i = 2 ; i< str.size()-1 ; i++)
+         for(int i = 2 ; i< (int)str.size()-1 ; i++)
          {
              if(str[i]=='\'')
              {
@@ -479,7 +479,7 @@ void validate_catG(statement &s)
      else if(tolower(str[0])=='x')
      {   std::locale loc;
 
-         for(int i = 2 ; i< str.size()-1 ; i++)
+         for(int i = 2 ; i< (int)str.size()-1 ; i++)
          {
              if(!std::isxdigit(str[i],loc))
              {
@@ -652,7 +652,7 @@ bool parse_operand(){
     else {
         int start = 0;
         int i;
-        for(i=0;i<tempOperand.length();i++){
+        for(i=0;i<(int)tempOperand.length();i++){
             if(tempOperand.at(i) == ','){
                 temporary.operand.push_back(tempOperand.substr(start,i-start));
                 start = i+1;
