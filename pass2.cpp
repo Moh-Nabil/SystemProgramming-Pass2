@@ -100,6 +100,7 @@ struct statement {
 	vector<string> operand;
 	string comment;
 	string line;
+	string obcode;
 	int error;
 	int address;
 	bool n, i, x, b, p, e;
@@ -766,12 +767,7 @@ int bin_to_int(string bin){
 }
 
 // Struct that holds a statement and its object code.
-struct ob_code{
-	statement s;
-	string obcode;
-};
 
-vector <ob_code> ob_codes;
 
 char bin_to_hexa(string bin){
 	if(bin == "0000")
@@ -828,16 +824,13 @@ string neg_int_to_hexa(int n, int digit){
 void generate_ob_code(){
 	
 	for(int i= 0; i< (int)statements.size(); i++){
-		
-		ob_code temp;
+		statement temp;
 		temp.obcode= "";
-		temp.s= statements[i];
 		if(statements[i].is_comment){
-			ob_codes.push_back(temp);
 			continue;
 		}
 		
-		op_line curr_mnemonic= op_table.get(temp.s.mnemonic);
+		op_line curr_mnemonic= op_table.get(statements[i].mnemonic);
 		vector<string> operands= statements[i].operand;
 		
 		
@@ -940,7 +933,7 @@ void generate_ob_code(){
 					temp.obcode= "4F0000";
 			}
 		}
-		ob_codes.push_back(temp);
+		statements[i].obcode= temp.obcode;
 	}
 }
 
@@ -962,8 +955,8 @@ int main() {
 		assignAddress(op_table);
 		output();
 		generate_ob_code();
-		for(int i= 0; i< (int)ob_codes.size(); i++)
-			cout << ob_codes[i].s.address << "\t" << ob_codes[i].s.line << "\t\t" << ob_codes[i].obcode << endl;
+		for(int i= 0; i< (int)statements.size(); i++)
+			cout << statements[i].address << "\t" << statements[i].line << "\t\t" << statements[i].obcode << endl;
 	}
 }
 
